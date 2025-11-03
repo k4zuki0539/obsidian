@@ -1,0 +1,27 @@
+# OS / エディタ由来の不要ファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+.history/
+.idea/
+.vscode/
+
+# 仮想環境 / 依存ディレクトリ
+node_modules/
+.venv/
+venv/
+
+# 秘密情報
+.env
+.env.*
+
+# 一時ファイル
+tmp/
+temp/
+
+# Obsidian 関連（レイアウト系のみ無視）
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/graph.json
+
+
