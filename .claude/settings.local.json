@@ -1,7 +1,25 @@
 {
   "permissions": {
     "allow": [
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)",
+      "Bash(rustc:*)",
+      "Bash(cargo --version:*)",
+      "Bash(cmake:*)",
+      "Bash(git --version:*)",
+      "Bash(clang:*)",
+      "Bash(echo $env:VCPKG_ROOT)",
+      "Bash(echo $env:LIBCLANG_PATH)",
+      "Bash(powershell -Command:*)",
+      "Bash(curl:*)",
+      "Bash(sqlite3:*)",
+      "Bash(dir \"C:\\\\screenpipe-release\\\\bin\\\\db.sqlite\")",
+      "Bash(dir \"%USERPROFILE%\\\\AppData\\\\Local\\\\screenpipe\\\\db.sqlite\")",
+      "Bash(dir \"%LOCALAPPDATA%\\\\screenpipe\\\\db.sqlite\")",
+      "Bash(dir /s /b \"C:\\\\screenpipe-release\\\\*.log\")",
+      "Bash(findstr:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:\\\\ドキュメント\\\\vault\\\\screenpipe_all\\\\scripts\\\\check_tasks.ps1\")"
     ],
     "deny": [],
     "ask": []

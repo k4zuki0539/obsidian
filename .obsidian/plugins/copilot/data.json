@@ -415,5 +415,7 @@
   "enableRecentConversations": true,
   "maxRecentConversations": 30,
   "enableSavedMemory": true,
-  "quickCommandIncludeNoteContext": true
+  "quickCommandIncludeNoteContext": true,
+  "autoIncludeTextSelection": false,
+  "enableInlineCitations": true
 }

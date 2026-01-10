@@ -1,0 +1,10 @@
+[2026-01-04 19:00:02] Starting Screenpipe data export...
+[2026-01-04 19:00:02] Target: 2026-01-04 hour 18
+[2026-01-04 19:00:02] Time range: 2026-01-04T09:00:00Z to 2026-01-04T10:00:00Z
+[2026-01-04 19:00:02] Fetching OCR data from Screenpipe API...
+[2026-01-04 19:00:06] Warning: Could not fetch OCR data: 対象のコンピューターによって拒否されたため、接続できませんでした。
+[2026-01-04 19:00:06] Fetching audio transcription data...
+[2026-01-04 19:00:10] Warning: Could not fetch audio data: 対象のコンピューターによって拒否されたため、接続できませんでした。
+[2026-01-04 19:00:10] No data found for the specified time range
+[2026-01-04 19:00:10] Raw data exported to: C:\ドキュメント\vault\screenpipe_all\raw\2026-01-04\18.md
+[2026-01-04 19:00:10] Export completed successfully

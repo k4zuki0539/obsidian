@@ -35,5 +35,6 @@
   "autoHideHorizontalTabs": false,
   "disableOnThisDevice": false,
   "enableUpdateCheck": true,
+  "showNewTabButtonAtBottom": false,
   "installationID": "-Gq7S0eU8c33S4cliTCCB"
 }

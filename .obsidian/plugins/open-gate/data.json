@@ -1,0 +1,38 @@
+{
+  "uuid": "myi3em92glre65mir4tk",
+  "gates": {
+    "aHR0cHM6Ly9jaGF0Lm9wZW5haS5jb20v": {
+      "id": "aHR0cHM6Ly9jaGF0Lm9wZW5haS5jb20v",
+      "title": "https://chat.openai.com/",
+      "icon": "<svg viewBox=\"0 0 100 100\"><image href=\"https://icon.horse/icon/chat.openai.com\" height=\"100\" width=\"100\" /></svg>",
+      "hasRibbon": true,
+      "position": "right",
+      "profileKey": "open-gate",
+      "url": "https://chat.openai.com/",
+      "zoomFactor": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0/HBpt3US8-18"
+    },
+    "aHR0cHM6Ly9jbGF1ZGUuYWkv": {
+      "id": "aHR0cHM6Ly9jbGF1ZGUuYWkv",
+      "title": "https://claude.ai/",
+      "icon": "<svg viewBox=\"0 0 100 100\"><image href=\"https://icon.horse/icon/claude.ai\" height=\"100\" width=\"100\" /></svg>",
+      "hasRibbon": true,
+      "position": "right",
+      "profileKey": "open-gate",
+      "url": "https://claude.ai/",
+      "zoomFactor": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0/HBpt3US8-18"
+    },
+    "aHR0cHM6Ly9nZW1pbmkuZ29vZ2xlLmNvbS8=": {
+      "id": "aHR0cHM6Ly9nZW1pbmkuZ29vZ2xlLmNvbS8=",
+      "title": "https://gemini.google.com/",
+      "icon": "<svg viewBox=\"0 0 100 100\"><image href=\"https://icon.horse/icon/gemini.google.com\" height=\"100\" width=\"100\" /></svg>",
+      "hasRibbon": true,
+      "position": "right",
+      "profileKey": "open-gate",
+      "url": "https://gemini.google.com/",
+      "zoomFactor": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0/HBpt3US8-18"
+    }
+  }
+}

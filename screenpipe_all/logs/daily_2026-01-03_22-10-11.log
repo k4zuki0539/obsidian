@@ -1,0 +1,7 @@
+[2026-01-03 22:10:11] Starting daily summary pipeline...
+[2026-01-03 22:10:11] Processing date: 2026-01-02
+[2026-01-03 22:10:11] Found 6 hourly summaries
+[2026-01-03 22:10:11] Running Codex for daily summary generation...
+[2026-01-03 22:10:11] Codex command: C:\Users\PC_User\AppData\Roaming\npm\codex.cmd exec --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -o C:\ドキュメント\vault\screenpipe_all\daily_summary\2026-01-02.md -
+[2026-01-03 22:10:30] Daily summary saved to: C:\ドキュメント\vault\screenpipe_all\daily_summary\2026-01-02.md
+[2026-01-03 22:10:30] Daily summary pipeline completed successfully

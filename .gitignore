@@ -24,4 +24,6 @@ temp/
 .obsidian/workspace-mobile.json
 .obsidian/graph.json
 
+# Windows予約名ファイル
+NUL
 

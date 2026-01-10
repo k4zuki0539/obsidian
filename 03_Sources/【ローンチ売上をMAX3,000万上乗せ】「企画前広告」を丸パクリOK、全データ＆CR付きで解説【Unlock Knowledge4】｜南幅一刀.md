@@ -1,6 +1,9 @@
 ---
 source: "https://note.com/kenminami1/n/n03846fc486fd"
 ---
+#ローンチ  
+
+
 # Summary
 
 # Highlights

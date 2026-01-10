@@ -45,6 +45,7 @@ var API_ENDPOINTS = {
     return `${BASE_URL}/messages/${vaultId}/${userId}`;
   },
   MAPPING: `${BASE_URL}/mapping`,
+  DELETE_MAPPING: `${BASE_URL}/mapping`,
   UPDATE_SYNC_STATUS: `${BASE_URL}/messages/update-sync-status`,
   REGISTER_PUBLIC_KEY: `${BASE_URL}/publickey/register`,
   GET_PUBLIC_KEY: (userId) => `${BASE_URL}/publickey/${userId}`
@@ -309,15 +310,39 @@ var KeyManager = class {
       await this.loadExistingKeys(keys);
       const data = await this.plugin.loadData();
       if (data == null ? void 0 : data.pendingKeyRegistration) {
-        try {
-          await this.registerPublicKey(keys);
-          delete data.pendingKeyRegistration;
-          await this.plugin.saveData(data);
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.error("Failed to complete pending key registration:", error);
-          }
-        }
+        await this.attemptKeyRegistration(keys);
+      }
+    }
+  }
+  async attemptKeyRegistration(keys) {
+    const data = await this.plugin.loadData();
+    const failureCount = data.registrationFailureCount || 0;
+    const lastAttempt = data.lastRegistrationAttempt || 0;
+    const backoffHours = Math.min(Math.pow(2, failureCount), 24);
+    const backoffMs = backoffHours * 60 * 60 * 1e3;
+    const timeSinceLastAttempt = Date.now() - lastAttempt;
+    if (timeSinceLastAttempt < backoffMs) {
+      return;
+    }
+    try {
+      await this.registerPublicKey(keys);
+      delete data.pendingKeyRegistration;
+      delete data.registrationFailureCount;
+      delete data.lastRegistrationAttempt;
+      await this.plugin.saveData(data);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Public key registration completed successfully");
+      }
+    } catch (error) {
+      data.pendingKeyRegistration = true;
+      data.lastRegistrationAttempt = Date.now();
+      data.registrationFailureCount = failureCount + 1;
+      await this.plugin.saveData(data);
+      if (process.env.NODE_ENV === "development") {
+        console.error(
+          `Public key registration failed (attempt ${failureCount + 1}):`,
+          error
+        );
       }
     }
   }
@@ -397,11 +422,10 @@ var KeyManager = class {
   }
   async registerPublicKey(keyInfo) {
     const settings = await this.plugin.loadData();
-    const apiUrl = settings.apiUrl || "http://localhost:8787";
     try {
       const { requestUrl: requestUrl2 } = require("obsidian");
       const response = await requestUrl2({
-        url: `${apiUrl}/publickey/register`,
+        url: API_ENDPOINTS.REGISTER_PUBLIC_KEY,
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -420,10 +444,11 @@ var KeyManager = class {
       if (process.env.NODE_ENV === "development") {
         console.error("Failed to register public key:", error);
       }
-      await this.plugin.saveData({
-        ...await this.plugin.loadData(),
-        pendingKeyRegistration: true
-      });
+      const data = await this.plugin.loadData();
+      data.pendingKeyRegistration = true;
+      data.lastRegistrationAttempt = Date.now();
+      data.registrationFailureCount = (data.registrationFailureCount || 0) + 1;
+      await this.plugin.saveData(data);
       throw error;
     }
   }
@@ -433,10 +458,9 @@ var KeyManager = class {
       return await CryptoUtils.importPublicKey(cached.publicKey);
     }
     const settings = await this.plugin.loadData();
-    const apiUrl = settings.apiUrl || "https://line-to-obsidian-dev.ryotaminami0709.workers.dev";
     const { requestUrl: requestUrl2 } = require("obsidian");
     const response = await requestUrl2({
-      url: `${apiUrl}/publickey/${userId}`,
+      url: API_ENDPOINTS.GET_PUBLIC_KEY(userId),
       method: "GET",
       headers: {
         "X-Vault-Id": settings.vaultId
@@ -785,6 +809,53 @@ var E2EEErrorHandler = class {
   }
 };
 
+// src/dateUtils.ts
+function toLocalDate(timestamp) {
+  return new Date(timestamp);
+}
+function getDateString(timestamp) {
+  const date = toLocalDate(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+}
+function getDateWithHyphens(timestamp) {
+  const date = toLocalDate(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function getISOString(timestamp) {
+  const date = toLocalDate(timestamp);
+  return date.toISOString();
+}
+function getDateTimeForFileName(timestamp) {
+  const date = toLocalDate(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
+  return `${year}${month}${day}${hour}${minute}${second}`;
+}
+function getTimeOnly(timestamp) {
+  const date = toLocalDate(timestamp);
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
+  return `${hour}${minute}${second}`;
+}
+function getTimeString(timestamp) {
+  const date = toLocalDate(timestamp);
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
+  return `${hour}:${minute}:${second}`;
+}
+
 // src/main.ts
 var DEFAULT_SETTINGS = {
   noteFolderPath: "LINE",
@@ -852,56 +923,22 @@ var LinePlugin = class extends import_obsidian2.Plugin {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
   }
   async saveSettings() {
-    await this.saveData(this.settings);
+    const currentData = await this.loadData() || {};
+    const dataToSave = {
+      ...currentData,
+      ...this.settings
+    };
+    await this.saveData(dataToSave);
     this.setupAutoSync();
-  }
-  toJST(timestamp) {
-    return new Date(timestamp);
-  }
-  getJSTDateString(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    return jstDate.toISOString().split("T")[0].replace(/-/g, "");
-  }
-  getJSTDateWithHyphens(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    return jstDate.toISOString().split("T")[0];
-  }
-  getJSTISOString(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    return jstDate.toISOString();
-  }
-  getJSTTimeForFileName(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    const year = jstDate.getFullYear();
-    const month = String(jstDate.getMonth() + 1).padStart(2, "0");
-    const day = String(jstDate.getDate()).padStart(2, "0");
-    const hour = String(jstDate.getHours()).padStart(2, "0");
-    const minute = String(jstDate.getMinutes()).padStart(2, "0");
-    const second = String(jstDate.getSeconds()).padStart(2, "0");
-    return `${year}${month}${day}${hour}${minute}${second}`;
-  }
-  getTimeOnly(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    const hour = String(jstDate.getHours()).padStart(2, "0");
-    const minute = String(jstDate.getMinutes()).padStart(2, "0");
-    const second = String(jstDate.getSeconds()).padStart(2, "0");
-    return `${hour}${minute}${second}`;
-  }
-  getJSTTimeString(timestamp) {
-    const jstDate = this.toJST(timestamp);
-    const hour = String(jstDate.getHours()).padStart(2, "0");
-    const minute = String(jstDate.getMinutes()).padStart(2, "0");
-    const second = String(jstDate.getSeconds()).padStart(2, "0");
-    return `${hour}:${minute}:${second}`;
   }
   generateFileName(message) {
     const template = this.settings.fileNameTemplate;
     const timestamp = message.timestamp;
     const variables = {
-      "{date}": this.getJSTDateWithHyphens(timestamp),
-      "{datecompact}": this.getJSTDateString(timestamp),
-      "{time}": this.getTimeOnly(timestamp),
-      "{datetime}": this.getJSTTimeForFileName(timestamp),
+      "{date}": getDateWithHyphens(timestamp),
+      "{datecompact}": getDateString(timestamp),
+      "{time}": getTimeOnly(timestamp),
+      "{datetime}": getDateTimeForFileName(timestamp),
       "{messageId}": message.messageId,
       "{userId}": message.userId,
       "{timestamp}": timestamp.toString()
@@ -949,7 +986,7 @@ var LinePlugin = class extends import_obsidian2.Plugin {
     }
   }
   parseMessageTemplate(template, message, messageText) {
-    return parseMessageTemplate(template, message, messageText, (timestamp) => this.getJSTTimeString(timestamp));
+    return parseMessageTemplate(template, message, messageText, getTimeString);
   }
   async syncMessages(isAutoSync = false) {
     if (!this.settings.vaultId) {
@@ -993,7 +1030,7 @@ var LinePlugin = class extends import_obsidian2.Plugin {
           if (message.synced) {
             continue;
           }
-          const dateString = this.getJSTDateString(message.timestamp);
+          const dateString = getDateString(message.timestamp);
           if (!messagesByDate.has(dateString)) {
             messagesByDate.set(dateString, []);
           }
@@ -1083,7 +1120,7 @@ var LinePlugin = class extends import_obsidian2.Plugin {
           }
           let folderPath;
           if (this.settings.organizeByDate) {
-            const dateString = this.getJSTDateString(message.timestamp);
+            const dateString = getDateString(message.timestamp);
             folderPath = `${this.settings.noteFolderPath}/${dateString}`;
           } else {
             folderPath = this.settings.noteFolderPath;
@@ -1118,7 +1155,7 @@ var LinePlugin = class extends import_obsidian2.Plugin {
             const content = [
               `---`,
               `source: LINE`,
-              `date: ${this.getJSTISOString(message.timestamp)}`,
+              `date: ${getISOString(message.timestamp)}`,
               `messageId: ${message.messageId}`,
               `userId: ${message.userId}`,
               `---`,
@@ -1207,6 +1244,60 @@ var LinePlugin = class extends import_obsidian2.Plugin {
     } catch (error) {
       new import_obsidian2.Notice(`\u30DE\u30C3\u30D4\u30F3\u30B0\u306E\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
+  }
+  async resetMapping() {
+    if (!this.settings.lineUserId || !this.settings.vaultId) {
+      new import_obsidian2.Notice("LINE UserID\u3068Vault ID\u306E\u4E21\u65B9\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+      return;
+    }
+    try {
+      const response = await (0, import_obsidian3.requestUrl)({
+        url: API_ENDPOINTS.DELETE_MAPPING,
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          userId: this.settings.lineUserId,
+          vaultId: this.settings.vaultId
+        })
+      });
+      if (response.status !== 200) {
+        throw new Error("\u30DE\u30C3\u30D4\u30F3\u30B0\u306E\u30EA\u30BB\u30C3\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      }
+      this.settings.lineUserId = "";
+      await this.saveSettings();
+      new import_obsidian2.Notice("LINE UserID\u3068Vault ID\u306E\u30DE\u30C3\u30D4\u30F3\u30B0\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002");
+    } catch (error) {
+      new import_obsidian2.Notice(`\u30DE\u30C3\u30D4\u30F3\u30B0\u306E\u30EA\u30BB\u30C3\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+};
+var ConfirmResetModal = class extends import_obsidian2.Modal {
+  constructor(app, onConfirm) {
+    super(app);
+    this.onConfirm = onConfirm;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: "\u30DE\u30C3\u30D4\u30F3\u30B0\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3059\u304B\uFF1F" });
+    contentEl.createEl("p", { text: "\u3053\u306E\u64CD\u4F5C\u306B\u3088\u308A\u3001LINE UserID\u3068Vault ID\u306E\u7D10\u3065\u3051\u304C\u524A\u9664\u3055\u308C\u307E\u3059\u3002\u518D\u5EA6LINE\u3092\u4F7F\u7528\u3059\u308B\u306B\u306F\u3001\u30DE\u30C3\u30D4\u30F3\u30B0\u306E\u518D\u767B\u9332\u304C\u5FC5\u8981\u306B\u306A\u308A\u307E\u3059\u3002" });
+    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+    buttonContainer.createEl("button", { text: "\u30AD\u30E3\u30F3\u30BB\u30EB" }).addEventListener("click", () => {
+      this.close();
+    });
+    const confirmBtn = buttonContainer.createEl("button", {
+      text: "\u30EA\u30BB\u30C3\u30C8\u3059\u308B",
+      cls: "mod-warning"
+    });
+    confirmBtn.addEventListener("click", () => {
+      this.close();
+      this.onConfirm();
+    });
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 };
 var LineSettingTab = class extends import_obsidian2.PluginSettingTab {
@@ -1333,6 +1424,11 @@ var LineSettingTab = class extends import_obsidian2.PluginSettingTab {
     });
     new import_obsidian2.Setting(containerEl).setName("Register mapping").setDesc("LINE UserID\u3068Vault ID\u306E\u30DE\u30C3\u30D4\u30F3\u30B0\u3092\u767B\u9332\u3057\u307E\u3059").addButton((button) => button.setButtonText("Register").onClick(async () => {
       await this.plugin.registerMapping();
+    }));
+    new import_obsidian2.Setting(containerEl).setName("Reset mapping").setDesc("LINE UserID\u3068Vault ID\u306E\u30DE\u30C3\u30D4\u30F3\u30B0\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3059\uFF08KV\u4E0A\u306E\u7D10\u3065\u3051\u3092\u524A\u9664\u3057\u3001\u518D\u767B\u9332\u53EF\u80FD\u306B\u3057\u307E\u3059\uFF09").addButton((button) => button.setButtonText("Reset").setWarning().onClick(() => {
+      new ConfirmResetModal(this.app, async () => {
+        await this.plugin.resetMapping();
+      }).open();
     }));
   }
 };

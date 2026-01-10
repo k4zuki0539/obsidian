@@ -1,0 +1,9 @@
+[2026-01-03 21:00:02] Starting Screenpipe data export...
+[2026-01-03 21:00:02] Target: 2026-01-03 hour 20
+[2026-01-03 21:00:02] Time range: 2026-01-03T11:00:00Z to 2026-01-03T12:00:00Z
+[2026-01-03 21:00:02] Fetching OCR data from Screenpipe API...
+[2026-01-03 21:00:05] Retrieved 500 OCR records
+[2026-01-03 21:00:05] Fetching audio transcription data...
+[2026-01-03 21:00:07] Retrieved 0 audio records
+[2026-01-03 21:00:07] Raw data exported to: C:\ドキュメント\vault\screenpipe_all\raw\2026-01-03\20.md
+[2026-01-03 21:00:07] Export completed successfully
