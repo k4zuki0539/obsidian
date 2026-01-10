@@ -23,7 +23,12 @@ temp/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/graph.json
+.obsidian/plugins/discord-message-sender/data.json
+.obsidian/plugins/ai-tagger-universe/data.json
 
 # Windows予約名ファイル
 NUL
+
+# 大きなファイル
+*.pdf
 
